@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydra Radio Inventory</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sb-logo">
+    <div class="logo-label">JTAC / S6</div>
+    <div class="logo-name">HYDRA<span>.</span>IMS</div>
+  </div>
+  <div id="sb-nav">
+    <button class="nav-item active" onclick="showScreen('dashboard',this)"><span class="ni-icon">⬛</span> Dashboard</button>
+    <button class="nav-item" onclick="showScreen('inventory',this)"><span class="ni-icon">📋</span> Inventory</button>
+    <button class="nav-item" onclick="showScreen('audits',this)"><span class="ni-icon">🔍</span> Audits</button>
+    <button class="nav-item" onclick="showScreen('settings',this)"><span class="ni-icon">⚙️</span> Settings</button>
+  </div>
+  <div id="sb-footer">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div>HYDRA IMS v5.2</div>
+      <button onclick="toggleTheme()" id="theme-toggle" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;transition:all .15s" title="Toggle light/dark mode">🌙</button>
+    </div>
+    <div id="data-status">Connecting…</div>
+  </div>
+</nav>
+
+<div id="main">
+
+  <!-- DASHBOARD -->
+  <div class="screen active" id="screen-dashboard">
+    <div class="page-header"><h1>Dashboard</h1><p>Overview and recent activity</p></div>
+    <div class="stats-row">
+      <div class="stat-card accent-blue"><div class="sc-label">Total Radios</div><div class="sc-value" id="stat-total">—</div><div class="sc-sub">in inventory</div></div>
+      <div class="stat-card accent-green"><div class="sc-label">Audited (30d)</div><div class="sc-value" id="stat-op">—</div><div class="sc-sub">recently verified</div></div>
+      <div class="stat-card accent-yellow"><div class="sc-label">Overdue</div><div class="sc-value" id="stat-maint">—</div><div class="sc-sub">past audit interval</div></div>
+      <div class="stat-card accent-red"><div class="sc-label">Never Audited</div><div class="sc-value" id="stat-missing">—</div><div class="sc-sub">no scan on record</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-section">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+          <div class="qa-btn" onclick="openAddModal()"><span class="qa-icon">➕</span><div><div>New Radio</div><div style="font-size:11px;color:var(--text2);font-weight:400">Add a radio to inventory</div></div><span class="qa-arrow">›</span></div>
+          <div class="qa-btn" onclick="showScreen('inventory',document.querySelectorAll('.nav-item')[1])"><span class="qa-icon">📋</span><div><div>Inventory</div><div style="font-size:11px;color:var(--text2);font-weight:400">View and manage all radios</div></div><span class="qa-arrow">›</span></div>
+          <div class="qa-btn" onclick="showScreen('audits',document.querySelectorAll('.nav-item')[2])"><span class="qa-icon">🔍</span><div><div>Start Audit</div><div style="font-size:11px;color:var(--text2);font-weight:400">Scan barcodes for verification</div></div><span class="qa-arrow">›</span></div>
+          <div class="qa-btn" onclick="exportCSV()"><span class="qa-icon">⬇️</span><div><div>Export CSV</div><div style="font-size:11px;color:var(--text2);font-weight:400">Download inventory spreadsheet</div></div><span class="qa-arrow">›</span></div>
+        </div>
+      </div>
+      <div class="dash-section">
+        <h3>Activity Log <span style="font-size:9px;opacity:.5;font-weight:400">— recent changes</span></h3>
+        <div class="log-list" id="log-list-preview"><div class="log-empty">No activity yet</div></div>
+        <div class="full-log-btn" id="view-full-log" style="display:none" onclick="showScreen('audits',document.querySelectorAll('.nav-item')[2]);showFullLog()">View full log →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="screen" id="screen-inventory">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Inventory</h1><p>All radios — click a row to view or edit</p></div>
+      <div class="flex-gap">
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('settings',document.querySelectorAll('.nav-item')[3]);setTimeout(()=>document.getElementById('import-section')?.scrollIntoView({behavior:'smooth'}),100)">📥 Import CSV</button>
+        <button class="btn btn-accent btn-sm" onclick="openAddModal()">+ New Radio</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="search-input" placeholder="Search any field…" oninput="renderTable()"></div>
+      <div class="toolbar-right"><button class="btn btn-ghost btn-sm" onclick="exportCSV()">Export CSV</button></div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr id="inv-thead"></tr></thead><tbody id="inv-tbody"></tbody></table>
+      <div class="table-footer"><span id="table-count">0 radios</span></div>
+    </div>
+  </div>
+
+  <!-- AUDITS HISTORY -->
+  <div class="screen" id="screen-audits">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Audits</h1><p>Audit history — click a record to review, or create a new audit</p></div>
+      <button class="btn btn-accent" onclick="startNewAudit()">+ Create Audit</button>
+    </div>
+    <div id="full-log-box" style="display:none;margin-bottom:20px">
+      <div class="dash-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin:0">Full Activity Log</h3>
+          <button class="btn btn-ghost btn-xs" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div class="log-list" id="log-list-full"></div>
+      </div>
+    </div>
+    <div id="audit-cards-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:12px">No audits yet — click "Create Audit" to begin</div>
+    <div id="audit-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
+  </div>
+
+  <!-- AUDIT SESSION -->
+  <div class="screen" id="screen-audit-session">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1 id="session-title">Active Audit</h1><p id="session-subtitle">Scan barcodes to verify radio custody</p></div>
+      <div class="flex-gap">
+        <button class="btn btn-ghost btn-sm" onclick="backToAudits()">← Back</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCurrentAudit()">Export CSV</button>
+        <button class="btn btn-green btn-sm" onclick="closeAudit()">Close &amp; Save Audit</button>
+      </div>
+    </div>
+    <div class="audit-box">
+      <h3>Barcode Scanner</h3>
+      <div class="scan-row">
+        <input id="scan-input" type="text" placeholder="Scan or type radio ID…" onkeydown="handleScan(event)" autocomplete="off" spellcheck="false">
+        <button class="btn btn-accent" onclick="processScan()">Verify</button>
+      </div>
+      <div id="scan-msg" style="font-size:11px;margin-top:8px;font-family:'JetBrains Mono',monospace;color:var(--text3)">Ready for scanning</div>
+    </div>
+    <div class="audit-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">Verified — <span id="verified-count">0</span> radios</h3>
+        <div class="flex-gap" style="gap:6px">
+          <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="av-search" placeholder="Search…" oninput="renderAuditTable()" style="width:160px"></div>
+          <select class="filter-sel" id="av-sort" onchange="renderAuditTable()">
+            <option value="ts-desc">Newest first</option><option value="ts-asc">Oldest first</option><option value="id-asc">ID A→Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap" style="border:none;border-radius:0;background:transparent">
+        <table><thead><tr id="av-thead"></tr></thead><tbody id="av-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIT DETAIL -->
+  <div class="screen" id="screen-audit-detail">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1 id="detail-title">Audit Detail</h1><p id="detail-subtitle"></p></div>
+      <div class="flex-gap">
+        <button class="btn btn-ghost btn-sm" onclick="backToAudits()">← Back</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportDetailAudit()">Export CSV</button>
+      </div>
+    </div>
+    <div class="audit-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="margin:0">Verified — <span id="detail-count">0</span> radios</h3>
+        <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="dv-search" placeholder="Search…" oninput="renderDetailTable()" style="width:160px"></div>
+      </div>
+      <div class="table-wrap" style="border:none;border-radius:0;background:transparent">
+        <table><thead><tr id="dv-thead"></tr></thead><tbody id="dv-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="screen" id="screen-settings">
+    <div class="page-header"><h1>Settings</h1><p>Manage fields, app settings, and data</p></div>
+
+    <!-- Field Definitions -->
+    <div class="settings-card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="margin:0">Inventory Fields</h3>
+        <button class="btn btn-accent btn-sm" onclick="openAddFieldModal()">+ Add Field</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:10px">
+        ID and Last Audited are always present. All other fields are custom.
+      </div>
+      <div class="field-def-list" id="field-def-list"></div>
+    </div>
+
+    <!-- App settings + import side by side -->
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3>App Settings</h3>
+        <div class="field"><label>Audit Interval (days)</label><input type="number" id="audit-interval" value="90" min="1"></div>
+        <div class="field"><label>Unit / Organization Name</label><input type="text" id="unit-name" placeholder="e.g. 1st Platoon, S6"></div>
+        <button class="btn btn-ghost btn-sm mt-4" onclick="applySettings()">Apply Settings</button>
+      </div>
+
+      <div class="settings-card" id="import-section">
+        <h3>Import CSV</h3>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+          <div class="dz-icon">📂</div>
+          <p>Click or drag a CSV file to import radios</p>
+          <p style="font-size:11px;margin-top:4px;color:var(--text3)">First column must be the Serial # / Radio ID</p>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleCSVFile(event)">
+        <div id="import-preview" class="import-preview" style="display:none"></div>
+        <div id="import-actions" style="display:none;margin-top:10px" class="flex-gap">
+          <button class="btn btn-green btn-sm" onclick="confirmImport()">✓ Import</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelImport()">Cancel</button>
+          <span id="import-summary" style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card mt-4">
+      <h3>Data Management</h3>
+      <div class="flex-gap" style="flex-wrap:wrap;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📊 Export CSV</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmClearData()">🗑 Clear All Radios</button>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:10px;font-family:'JetBrains Mono',monospace">All changes auto-save to Supabase in real time.</p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <h2 id="modal-title">Add Radio</h2>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" id="modal-save-btn" onclick="modalSaveDispatch()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="sync-toast"></div>
+
+<!-- SCRIPTS: load order matters — config first, init last -->
+<script src="assets/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/fields.js"></script>
+<script src="js/import.js"></script>
+<script src="js/audits.js"></script>
+<script src="js/init.js"></script>
+
+</body>
+</html>
