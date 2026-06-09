@@ -304,7 +304,8 @@ function buildRadioCard(r) {
     const val = (r.custom_fields && r.custom_fields[f.key]) || '';
     return `<div class="rc-field">
       <div class="rc-field-label">${f.label}</div>
-      <div class="rc-field-value">${val || '<span style="color:var(--text3)">—</span>'}</div>
+      <div class="rc-field-divider"></div>
+      <div class="rc-field-value">${val || '<span class="rc-empty">—</span>'}</div>
     </div>`;
   }).join('');
 
