@@ -7,82 +7,132 @@ function sortBy(field) {
   renderTable();
 }
 
-// ── DEPARTMENT MULTI-FILTER ──
-let selectedDepts = new Set();
+// ── MULTI-FIELD FILTER ──
+// activeFilters: { fieldKey: Set(values) }
+let activeFilters = {};
 
-function getDeptOptions() {
-  const deptField = fieldDefs.find(f => f.key === 'department');
-  return deptField?.options?.length
-    ? deptField.options
-    : [...new Set(radios.map(r => r.custom_fields?.department).filter(Boolean))].sort();
+function getFilterableFields() {
+  // All select-type fields from fieldDefs
+  return fieldDefs.filter(f => f.type === 'select' && f.options && f.options.length);
 }
 
-function toggleDeptDropdown(e) {
-  e.stopPropagation();
-  const dd = document.getElementById('dept-dropdown');
-  if (!dd) return;
-  const isOpen = dd.style.display !== 'none';
-  if (isOpen) { dd.style.display = 'none'; return; }
-  buildDeptDropdown();
-  dd.style.display = 'block';
-  // close on outside click
-  setTimeout(() => document.addEventListener('click', closeDeptDropdown, { once: true }), 0);
+function toggleFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) {
+    panel.style.display = 'none';
+  } else {
+    buildFilterPanel();
+    panel.style.display = 'block';
+  }
 }
 
-function closeDeptDropdown() {
-  const dd = document.getElementById('dept-dropdown');
-  if (dd) dd.style.display = 'none';
-}
-
-function buildDeptDropdown() {
-  const list = document.getElementById('dept-dd-list'); if (!list) return;
-  const opts = getDeptOptions();
-  if (!opts.length) { list.innerHTML = '<div style="padding:10px 12px;color:var(--text3);font-size:12px">No departments defined</div>'; return; }
-  list.innerHTML = opts.map(d => `
-    <label class="dept-dd-item ${selectedDepts.has(d) ? 'active' : ''}" onclick="toggleDept('${d}',event)">
-      <span class="dept-dd-check">${selectedDepts.has(d) ? '✓' : ''}</span>
-      <span>${d}</span>
-    </label>`).join('');
-}
-
-function toggleDept(dept, e) {
-  e.stopPropagation();
-  if (selectedDepts.has(dept)) selectedDepts.delete(dept);
-  else selectedDepts.add(dept);
-  buildDeptDropdown();
-  renderPills();
-  renderTable();
-}
-
-function removeDept(dept) {
-  selectedDepts.delete(dept);
-  renderPills();
-  renderTable();
-}
-
-function clearDeptFilter() {
-  selectedDepts.clear();
-  renderPills();
-  renderTable();
-}
-
-function renderPills() {
-  const row = document.getElementById('dept-pills-row');
-  const btn = document.getElementById('dept-filter-label');
-  if (!row) return;
-  if (!selectedDepts.size) {
-    row.style.display = 'none';
-    row.innerHTML = '';
-    if (btn) btn.textContent = 'All Departments';
+function buildFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  const fields = getFilterableFields();
+  if (!fields.length) {
+    panel.innerHTML = '<div class="filter-panel-empty">No filterable fields — add a Dropdown field in Settings.</div>';
     return;
   }
-  if (btn) btn.textContent = selectedDepts.size === 1
-    ? [...selectedDepts][0]
-    : selectedDepts.size + ' Departments';
+  panel.innerHTML = `
+    <div class="filter-panel">
+      <div class="filter-panel-header">
+        <span class="filter-panel-title">Filters</span>
+        <button class="filter-clear-all" onclick="clearAllFilters()">Clear all</button>
+      </div>
+      <div class="filter-panel-body">
+        ${fields.map(f => buildFilterGroup(f)).join('')}
+      </div>
+    </div>`;
+}
+
+function buildFilterGroup(f) {
+  const active = activeFilters[f.key] || new Set();
+  return `
+    <div class="filter-group">
+      <div class="filter-group-label">${f.label}</div>
+      <div class="filter-group-options">
+        ${f.options.map(o => `
+          <label class="filter-option ${active.has(o) ? 'active' : ''}" onclick="toggleFilterValue('${f.key}','${o.replace(/'/g,"\'")}',this)">
+            <span class="filter-option-check">${active.has(o) ? '✓' : ''}</span>
+            <span>${o}</span>
+          </label>`).join('')}
+      </div>
+    </div>`;
+}
+
+function toggleFilterValue(key, value, el) {
+  if (!activeFilters[key]) activeFilters[key] = new Set();
+  const set = activeFilters[key];
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+  if (!set.size) delete activeFilters[key];
+  // Update just this option visually
+  const isActive = (activeFilters[key] || new Set()).has(value);
+  el.classList.toggle('active', isActive);
+  el.querySelector('.filter-option-check').textContent = isActive ? '✓' : '';
+  updateFilterBtnLabel();
+  renderFilterPills();
+  renderTable();
+}
+
+function clearAllFilters() {
+  activeFilters = {};
+  buildFilterPanel();
+  updateFilterBtnLabel();
+  renderFilterPills();
+  renderTable();
+}
+
+function clearFieldFilter(key) {
+  delete activeFilters[key];
+  buildFilterPanel();
+  updateFilterBtnLabel();
+  renderFilterPills();
+  renderTable();
+}
+
+function removeFilterValue(key, value) {
+  if (!activeFilters[key]) return;
+  activeFilters[key].delete(value);
+  if (!activeFilters[key].size) delete activeFilters[key];
+  buildFilterPanel();
+  updateFilterBtnLabel();
+  renderFilterPills();
+  renderTable();
+}
+
+function updateFilterBtnLabel() {
+  const btn = document.getElementById('filter-btn-label');
+  if (!btn) return;
+  const total = Object.values(activeFilters).reduce((n, s) => n + s.size, 0);
+  btn.textContent = total ? `⚡ Filter (${total})` : '⚡ Filter';
+  document.getElementById('filter-toggle-btn')?.classList.toggle('btn-accent', total > 0);
+  document.getElementById('filter-toggle-btn')?.classList.toggle('btn-ghost', total === 0);
+}
+
+function renderFilterPills() {
+  const row = document.getElementById('filter-pills-row');
+  if (!row) return;
+  const entries = [];
+  Object.entries(activeFilters).forEach(([key, vals]) => {
+    const field = fieldDefs.find(f => f.key === key);
+    const label = field ? field.label : key;
+    vals.forEach(v => entries.push({ key, label, value: v }));
+  });
+  if (!entries.length) {
+    row.style.display = 'none';
+    row.innerHTML = '';
+    return;
+  }
   row.style.display = 'flex';
-  row.innerHTML = [...selectedDepts].map(d =>
-    `<span class="dept-pill">${d}<button class="dept-pill-x" onclick="removeDept('${d}')" title="Remove">✕</button></span>`
-  ).join('') + `<button class="dept-pill-clear" onclick="clearDeptFilter()">Clear all</button>`;
+  row.innerHTML = entries.map(e =>
+    `<span class="dept-pill"><span style="opacity:.6;margin-right:4px">${e.label}:</span>${e.value}<button class="dept-pill-x" onclick="removeFilterValue('${e.key}','${e.value.replace(/'/g,"\'")}')">✕</button></span>`
+  ).join('') + `<button class="dept-pill-clear" onclick="clearAllFilters()">Clear all</button>`;
+}
+
+function hasActiveFilters() {
+  return Object.values(activeFilters).some(s => s.size > 0);
 }
 
 // ── TABLE ──
@@ -102,7 +152,10 @@ function renderTable() {
   buildTableHeader('inv-thead', true);
   const q = (document.getElementById('search-input')?.value || '').toLowerCase();
   let rows = radios.filter(r => {
-    if (selectedDepts.size && !selectedDepts.has(r.custom_fields?.department || '')) return false;
+    // Apply active filters — all field filters must match (AND logic)
+    for (const [key, vals] of Object.entries(activeFilters)) {
+      if (vals.size && !vals.has(r.custom_fields?.[key] || '')) return false;
+    }
     if (!q) return true;
     if ((r.id || '').toLowerCase().includes(q)) return true;
     if ((r.lid || '').toLowerCase().includes(q)) return true;
