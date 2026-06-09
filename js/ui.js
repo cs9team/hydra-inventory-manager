@@ -43,11 +43,13 @@ function showScreen(name, btn) {
   document.getElementById('screen-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  document.getElementById('actlog-btn')?.classList.toggle('active', name === 'actlog');
   if (name === 'dashboard') refreshDashboard();
   if (name === 'inventory') renderTable();
   if (name === 'settings') renderFieldDefs();
   if (name === 'audits') renderAuditCards();
   if (name === 'tickets') renderTickets();
+  if (name === 'actlog') renderActivityLog();
 }
 
 // ── THEME ──

@@ -63,3 +63,57 @@ function refreshDashboard() {
   const vlb = document.getElementById('view-full-log');
   if (vlb) vlb.style.display = activityLog.length > 8 ? 'block' : 'none';
 }
+
+// ── ACTIVITY LOG SCREEN ──
+function renderActivityLog() {
+  const q    = (document.getElementById('actlog-search')?.value || '').toLowerCase();
+  const type = document.getElementById('actlog-type')?.value || '';
+  const sort = document.getElementById('actlog-sort')?.value || 'newest';
+
+  let items = [...activityLog];
+  if (type) items = items.filter(e => e.type === type);
+  if (q)    items = items.filter(e => e.msg.toLowerCase().includes(q));
+  if (sort === 'oldest') items = items.reverse();
+
+  const countEl = document.getElementById('actlog-count');
+  if (countEl) {
+    countEl.textContent = items.length === activityLog.length
+      ? items.length + ' entries'
+      : items.length + ' of ' + activityLog.length + ' entries';
+  }
+
+  const body = document.getElementById('actlog-body');
+  if (!body) return;
+
+  if (!items.length) {
+    body.innerHTML = '<div class="actlog-empty">No entries match your filters</div>';
+    return;
+  }
+
+  const labels   = { add: 'ADD', edit: 'EDIT', delete: 'DEL', audit: 'AUDIT', settings: 'CFG' };
+  const typeIcons = { add: '➕', edit: '✏️', delete: '🗑', audit: '🔍', settings: '⚙️' };
+
+  // Group by date
+  const groups = {};
+  items.forEach(e => {
+    const day = e.ts
+      ? new Date(e.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Unknown';
+    if (!groups[day]) groups[day] = [];
+    groups[day].push(e);
+  });
+
+  body.innerHTML = Object.entries(groups).map(([day, entries]) => `
+    <div class="actlog-day-group">
+      <div class="actlog-day-label">${day}</div>
+      <div class="actlog-day-entries">
+        ${entries.map(e => `
+          <div class="actlog-row">
+            <span class="actlog-row-icon">${typeIcons[e.type] || '•'}</span>
+            <span class="actlog-row-msg">${e.msg}</span>
+            <span class="log-tag ${e.type}">${labels[e.type] || e.type.toUpperCase()}</span>
+            <span class="actlog-row-time">${fmtTime(e.ts)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}

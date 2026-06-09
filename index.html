@@ -30,6 +30,7 @@
 </nav>
 
 <div id="main">
+  <button id="actlog-btn" onclick="showScreen('actlog',null)" title="Activity Log">🕐</button>
 
   <!-- DASHBOARD -->
   <div class="screen active" id="screen-dashboard">
@@ -222,6 +223,37 @@
       </div>
       <p style="font-size:11px;color:var(--text3);margin-top:10px;font-family:'JetBrains Mono',monospace">All changes auto-save to Supabase in real time.</p>
     </div>
+  </div>
+
+  <!-- ACTIVITY LOG -->
+  <div class="screen" id="screen-actlog">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <h1>🕐 Activity Log</h1>
+        <p>Full record of all actions — add, edit, delete, audits, and settings changes</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="history.go(-1)||showScreen('dashboard',document.querySelectorAll('.nav-item')[0])">← Back</button>
+    </div>
+    <div class="actlog-toolbar-row">
+      <div class="search-wrap" style="flex:1;max-width:340px">
+        <span class="s-icon">🔍</span>
+        <input type="text" id="actlog-search" placeholder="Search activity…" oninput="renderActivityLog()">
+      </div>
+      <select class="filter-sel" id="actlog-type" onchange="renderActivityLog()">
+        <option value="">All Types</option>
+        <option value="add">➕ Added</option>
+        <option value="edit">✏️ Edited</option>
+        <option value="delete">🗑 Deleted</option>
+        <option value="audit">🔍 Audit</option>
+        <option value="settings">⚙️ Settings</option>
+      </select>
+      <select class="filter-sel" id="actlog-sort" onchange="renderActivityLog()">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
+      <div id="actlog-count" class="actlog-count-badge"></div>
+    </div>
+    <div id="actlog-body"></div>
   </div>
 
 </div><!-- /main -->
