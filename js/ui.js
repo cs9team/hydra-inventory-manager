@@ -32,7 +32,9 @@ function modalSaveDispatch() { if (modalSaveFn) modalSaveFn(); }
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
   editingId = null; modalSaveFn = null;
-  document.getElementById('modal-save-btn').className = 'btn btn-accent';
+  const btn = document.getElementById('modal-save-btn');
+  btn.className = 'btn btn-accent';
+  btn.style.display = '';
 }
 
 // ── SCREEN NAV ──

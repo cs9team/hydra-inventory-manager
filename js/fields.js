@@ -9,7 +9,13 @@ function renderFieldDefs() {
     list.innerHTML = '<div style="color:var(--text3);font-size:12px;font-family:\'JetBrains Mono\',monospace">No custom fields yet.</div>'; return;
   }
   list.innerHTML = fields.map(f => `
-    <div class="field-def-row">
+    <div class="field-def-row" draggable="true" data-id="${f.id}"
+      ondragstart="fdrDragStart(event)"
+      ondragover="fdrDragOver(event)"
+      ondragleave="fdrDragLeave(event)"
+      ondrop="fdrDrop(event)"
+      ondragend="fdrDragEnd(event)">
+      <span class="fdr-drag" title="Drag to reorder">⠿</span>
       <span class="fdr-label">${f.label}</span>
       <span class="fdr-key">${f.key}</span>
       <span class="fdr-type">${f.type}</span>
@@ -19,6 +25,63 @@ function renderFieldDefs() {
     </div>`).join('');
 }
 
+// ── DRAG-TO-REORDER ──
+let _dragId = null;
+
+function fdrDragStart(e) {
+  _dragId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function fdrDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target.dataset.id === _dragId) return;
+  target.classList.add('drag-over');
+}
+
+function fdrDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function fdrDragEnd(e) {
+  document.querySelectorAll('.field-def-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+  _dragId = null;
+}
+
+async function fdrDrop(e) {
+  e.preventDefault();
+  const targetId = e.currentTarget.dataset.id;
+  if (!_dragId || _dragId === targetId) return;
+  e.currentTarget.classList.remove('drag-over');
+
+  // Reorder in fieldDefs array
+  const fields = visibleFields();
+  const fromIdx = fields.findIndex(f => f.id === _dragId);
+  const toIdx   = fields.findIndex(f => f.id === targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  fields.splice(toIdx, 0, fields.splice(fromIdx, 1)[0]);
+
+  // Reassign ord values and update fieldDefs in place
+  fields.forEach((f, i) => {
+    const def = fieldDefs.find(d => d.id === f.id);
+    if (def) def.ord = i;
+  });
+
+  renderFieldDefs();
+  renderTable();
+
+  // Persist to Supabase
+  toast('Saving order…', 'syncing', 10000);
+  const results = await Promise.all(
+    fields.map((f, i) => sb.from('field_definitions').update({ ord: i }).eq('id', f.id)) // [DATA LAYER]
+  );
+  const failed = results.find(r => r.error);
+  if (failed) { toast('Failed: ' + failed.error.message, 'err'); return; }
+  toast('✓ Order saved', 'ok');
+}
 // ── FIELD MODAL ──
 function openAddFieldModal() {
   document.getElementById('modal-title').textContent = 'Add Field';

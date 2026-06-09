@@ -67,9 +67,20 @@
       </div>
     </div>
     <div class="toolbar">
-      <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="search-input" placeholder="Search any field…" oninput="renderTable()"></div>
-      <div class="toolbar-right"><button class="btn btn-ghost btn-sm" onclick="exportCSV()">Export CSV</button></div>
+      <div class="search-wrap"><span class="s-icon">&#128269;</span><input type="text" id="search-input" placeholder="Search any field&hellip;" oninput="renderTable()"></div>
+      <div class="toolbar-right">
+        <div class="dept-filter-wrap">
+          <button class="btn btn-ghost btn-sm" onclick="toggleDeptDropdown(event)" id="dept-filter-btn">
+            <span id="dept-filter-label">All Departments</span> <span style="opacity:.5;font-size:10px;margin-left:2px">&#9660;</span>
+          </button>
+          <div class="dept-dropdown" id="dept-dropdown" style="display:none">
+            <div class="dept-dd-list" id="dept-dd-list"></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">Export CSV</button>
+      </div>
     </div>
+    <div class="dept-pills-row" id="dept-pills-row" style="display:none;margin-bottom:10px"></div>
     <div class="table-wrap">
       <table><thead><tr id="inv-thead"></tr></thead><tbody id="inv-tbody"></tbody></table>
       <div class="table-footer"><span id="table-count">0 radios</span></div>

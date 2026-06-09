@@ -7,6 +7,84 @@ function sortBy(field) {
   renderTable();
 }
 
+// ── DEPARTMENT MULTI-FILTER ──
+let selectedDepts = new Set();
+
+function getDeptOptions() {
+  const deptField = fieldDefs.find(f => f.key === 'department');
+  return deptField?.options?.length
+    ? deptField.options
+    : [...new Set(radios.map(r => r.custom_fields?.department).filter(Boolean))].sort();
+}
+
+function toggleDeptDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('dept-dropdown');
+  if (!dd) return;
+  const isOpen = dd.style.display !== 'none';
+  if (isOpen) { dd.style.display = 'none'; return; }
+  buildDeptDropdown();
+  dd.style.display = 'block';
+  // close on outside click
+  setTimeout(() => document.addEventListener('click', closeDeptDropdown, { once: true }), 0);
+}
+
+function closeDeptDropdown() {
+  const dd = document.getElementById('dept-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function buildDeptDropdown() {
+  const list = document.getElementById('dept-dd-list'); if (!list) return;
+  const opts = getDeptOptions();
+  if (!opts.length) { list.innerHTML = '<div style="padding:10px 12px;color:var(--text3);font-size:12px">No departments defined</div>'; return; }
+  list.innerHTML = opts.map(d => `
+    <label class="dept-dd-item ${selectedDepts.has(d) ? 'active' : ''}" onclick="toggleDept('${d}',event)">
+      <span class="dept-dd-check">${selectedDepts.has(d) ? '✓' : ''}</span>
+      <span>${d}</span>
+    </label>`).join('');
+}
+
+function toggleDept(dept, e) {
+  e.stopPropagation();
+  if (selectedDepts.has(dept)) selectedDepts.delete(dept);
+  else selectedDepts.add(dept);
+  buildDeptDropdown();
+  renderPills();
+  renderTable();
+}
+
+function removeDept(dept) {
+  selectedDepts.delete(dept);
+  renderPills();
+  renderTable();
+}
+
+function clearDeptFilter() {
+  selectedDepts.clear();
+  renderPills();
+  renderTable();
+}
+
+function renderPills() {
+  const row = document.getElementById('dept-pills-row');
+  const btn = document.getElementById('dept-filter-label');
+  if (!row) return;
+  if (!selectedDepts.size) {
+    row.style.display = 'none';
+    row.innerHTML = '';
+    if (btn) btn.textContent = 'All Departments';
+    return;
+  }
+  if (btn) btn.textContent = selectedDepts.size === 1
+    ? [...selectedDepts][0]
+    : selectedDepts.size + ' Departments';
+  row.style.display = 'flex';
+  row.innerHTML = [...selectedDepts].map(d =>
+    `<span class="dept-pill">${d}<button class="dept-pill-x" onclick="removeDept('${d}')" title="Remove">✕</button></span>`
+  ).join('') + `<button class="dept-pill-clear" onclick="clearDeptFilter()">Clear all</button>`;
+}
+
 // ── TABLE ──
 function buildTableHeader(theadId, includeActions) {
   const thead = document.getElementById(theadId); if (!thead) return;
@@ -24,6 +102,7 @@ function renderTable() {
   buildTableHeader('inv-thead', true);
   const q = (document.getElementById('search-input')?.value || '').toLowerCase();
   let rows = radios.filter(r => {
+    if (selectedDepts.size && !selectedDepts.has(r.custom_fields?.department || '')) return false;
     if (!q) return true;
     if ((r.id || '').toLowerCase().includes(q)) return true;
     if ((r.lid || '').toLowerCase().includes(q)) return true;
@@ -108,18 +187,87 @@ function buildRadioForm(r) {
 function openAddModal() {
   editingId = null; modalSaveFn = saveModal;
   document.getElementById('modal-title').textContent = 'Add Radio';
-  document.getElementById('modal-body').innerHTML = buildRadioForm(null);
+  document.getElementById('modal-save-btn').style.display = '';
   document.getElementById('modal-save-btn').textContent = 'Add Radio';
+  document.getElementById('modal-body').innerHTML = buildRadioForm(null);
   document.getElementById('modal-overlay').classList.add('open');
 }
 
 function openEditModal(id) {
   const r = radios.find(x => x.id === id); if (!r) return;
-  editingId = id; modalSaveFn = saveModal;
-  document.getElementById('modal-title').textContent = 'Edit Radio — ' + id;
-  document.getElementById('modal-body').innerHTML = buildRadioForm(r);
-  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  openRadioCard(r);
+}
+
+function openRadioCard(r) {
+  editingId = null; modalSaveFn = null;
+  document.getElementById('modal-title').textContent = r.id;
+  document.getElementById('modal-save-btn').style.display = 'none';
+  document.getElementById('modal-body').innerHTML = buildRadioCard(r);
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function switchToEditMode(id) {
+  const r = radios.find(x => x.id === id); if (!r) return;
+  editingId = id; modalSaveFn = saveModal;
+  document.getElementById('modal-title').textContent = 'Edit — ' + id;
+  document.getElementById('modal-save-btn').style.display = '';
+  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  document.getElementById('modal-body').innerHTML = buildRadioForm(r);
+}
+
+function buildRadioCard(r) {
+  const fields = visibleFields();
+
+  const fieldRows = fields.map(f => {
+    const val = (r.custom_fields && r.custom_fields[f.key]) || '';
+    return `<div class="rc-field">
+      <div class="rc-field-label">${f.label}</div>
+      <div class="rc-field-value">${val || '<span style="color:var(--text3)">—</span>'}</div>
+    </div>`;
+  }).join('');
+
+  // Build history from audit data
+  const history = [];
+  const allAudits = activeAudit ? [activeAudit, ...audits] : [...audits];
+  allAudits.forEach(a => {
+    a.items.forEach(item => {
+      if (item.id === r.id) {
+        history.push({ type: 'audit', label: 'Verified in audit', detail: a.name, ts: item.ts });
+      }
+    });
+  });
+  if (!history.length && r.lastAudited) {
+    history.push({ type: 'audit', label: 'Last verified', detail: '', ts: r.lastAudited });
+  }
+  history.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  history.push({ type: 'add', label: 'Added to inventory', detail: '', ts: null });
+
+  const icons = { audit: '🔍', add: '➕', edit: '✏️' };
+  const historyRows = history.map((h, i) => `
+    <div class="rc-hist-item ${i === history.length - 1 ? 'last' : ''}">
+      <div class="rc-hist-dot ${h.type}"></div>
+      <div class="rc-hist-body">
+        <div class="rc-hist-label">${icons[h.type] || '•'} ${h.label}${h.detail ? ` <span class="rc-hist-detail">${h.detail}</span>` : ''}</div>
+        <div class="rc-hist-time">${h.ts ? fmtTime(h.ts) : 'Unknown date'}</div>
+      </div>
+    </div>`).join('');
+
+  const badge = r.lastAudited
+    ? `<span class="rc-badge audited">✓ Audited ${fmtTime(r.lastAudited)}</span>`
+    : `<span class="rc-badge never">Never audited</span>`;
+
+  return `<div class="radio-card">
+    <div class="rc-topbar">
+      ${badge}
+      <button class="btn btn-accent btn-sm" onclick="switchToEditMode('${r.id}')">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="closeModal();deleteRadio('${r.id}')">Delete</button>
+    </div>
+    <div class="rc-fields">${fieldRows}</div>
+    <div class="rc-history">
+      <div class="rc-hist-title">History</div>
+      ${historyRows || '<div style="color:var(--text3);font-size:12px">No history yet</div>'}
+    </div>
+  </div>`;
 }
 
 async function saveModal() {
