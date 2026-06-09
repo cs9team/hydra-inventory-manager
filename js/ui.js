@@ -19,6 +19,22 @@ function visibleFields() {
   return [...fieldDefs].sort((a, b) => a.ord - b.ord);
 }
 
+// ── FIELD VALUE PILLS ──
+function strToHue(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+}
+
+function fieldPill(value, field) {
+  if (!value) return '<span class="fv-empty">—</span>';
+  if (!field || field.type !== 'select') return value;
+  const hue = strToHue(String(value));
+  return `<span class="fv-pill" style="--ph:${hue}">${value}</span>`;
+}
+
 function getFieldVal(radio, key) {
   if (key === 'id') return radio.id || '';
   if (key === 'lid') return radio.lid || '';

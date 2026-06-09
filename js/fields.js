@@ -103,7 +103,7 @@ function openEditFieldModal(id) {
 }
 
 function buildFieldForm(f) {
-  const opts = f && f.options ? f.options.join(', ') : '';
+  const existingOpts = f && f.options ? f.options : [];
   return `
     <div class="field"><label>Label (display name)</label><input id="ff-label" type="text" value="${f ? f.label : ''}" placeholder="e.g. Division"></div>
     <div class="field"><label>Key (internal, no spaces)</label><input id="ff-key" type="text" value="${f ? f.key : ''}" placeholder="e.g. division" ${f ? 'readonly' : ''}></div>
@@ -117,26 +117,76 @@ function buildFieldForm(f) {
       </select>
     </div>
     <div class="field" id="ff-options-row" style="display:none">
-      <label>Options (comma-separated)</label>
-      <input id="ff-options" type="text" value="${opts}" placeholder="e.g. IN, OUT, PENDING">
+      <label>Dropdown Options</label>
+      <div class="opts-list" id="ff-opts-list">
+        ${existingOpts.map((o, i) => optRowHTML(o, i)).join('')}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addOptRow()">+ Add Option</button>
     </div>
     <div class="field">
       <label><input type="checkbox" id="ff-required" ${f && f.required ? 'checked' : ''} style="width:auto;margin-right:6px">Required field</label>
     </div>`;
 }
 
+function optRowHTML(value, idx) {
+  const hue = value ? strToHue(value) : 0;
+  return `<div class="opt-row" data-idx="${idx}">
+    <span class="opt-preview" id="opt-preview-${idx}" style="${value ? '--ph:' + hue : 'display:none'}">${value}</span>
+    <input class="opt-input" type="text" value="${value}" placeholder="Option value…"
+      oninput="updateOptPreview(this,${idx})"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();addOptRow()}">
+    <button type="button" class="opt-remove" onclick="removeOptRow(this)" title="Remove">✕</button>
+  </div>`;
+}
+
+function addOptRow() {
+  const list = document.getElementById('ff-opts-list');
+  if (!list) return;
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.innerHTML = optRowHTML('', idx);
+  list.appendChild(div.firstElementChild);
+  list.lastElementChild.querySelector('.opt-input')?.focus();
+}
+
+function removeOptRow(btn) {
+  btn.closest('.opt-row')?.remove();
+}
+
+function updateOptPreview(input, idx) {
+  const val = input.value.trim();
+  const preview = document.getElementById('opt-preview-' + idx);
+  if (!preview) return;
+  if (val) {
+    const hue = strToHue(val);
+    preview.style.cssText = '--ph:' + hue;
+    preview.textContent = val;
+    preview.style.display = '';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
 function toggleOptionsRow() {
   const t = document.getElementById('ff-type')?.value;
   const row = document.getElementById('ff-options-row');
-  if (row) row.style.display = t === 'select' ? 'block' : 'none';
+  if (!row) return;
+  row.style.display = t === 'select' ? 'block' : 'none';
+  // Auto-add first row if empty
+  if (t === 'select') {
+    const list = document.getElementById('ff-opts-list');
+    if (list && !list.children.length) addOptRow();
+  }
 }
 
 async function saveFieldModal(editId) {
   const label = (document.getElementById('ff-label')?.value || '').trim();
   let key = (document.getElementById('ff-key')?.value || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   const type = document.getElementById('ff-type')?.value || 'text';
-  const optsRaw = (document.getElementById('ff-options')?.value || '');
-  const options = type === 'select' ? optsRaw.split(',').map(s => s.trim()).filter(Boolean) : null;
+  const options = type === 'select'
+    ? [...document.querySelectorAll('#ff-opts-list .opt-input')]
+        .map(i => i.value.trim()).filter(Boolean)
+    : null;
   const required = document.getElementById('ff-required')?.checked || false;
   if (!label) { alert('Label is required.'); return; }
   if (!key) { alert('Key is required.'); return; }

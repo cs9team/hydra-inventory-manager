@@ -216,7 +216,7 @@ function renderTable() {
       let tds = `<td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${r.id || ''}</td>`;
       fields.forEach(f => {
         const v = (r.custom_fields && r.custom_fields[f.key]) || '';
-        tds += `<td style="color:var(--text2)">${v || '—'}</td>`;
+        tds += `<td>${fieldPill(v, f)}</td>`;
       });
       tds += `<td style="color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px">${r.lastAudited ? new Date(r.lastAudited).toLocaleDateString() : '<span style="color:var(--text3)">Never</span>'}</td>`;
       tds += `<td><button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteRadio('${r.id}')">Delete</button></td>`;
@@ -305,7 +305,7 @@ function buildRadioCard(r) {
     return `<div class="rc-field">
       <div class="rc-field-label">${f.label}</div>
       <div class="rc-field-divider"></div>
-      <div class="rc-field-value">${val || '<span class="rc-empty">—</span>'}</div>
+      <div class="rc-field-value">${fieldPill(val, f)}</div>
     </div>`;
   }).join('');
 
