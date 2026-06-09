@@ -17,33 +17,62 @@ function getFilterableFields() {
 }
 
 function toggleFilterPanel() {
-  const panel = document.getElementById('filter-panel');
-  const isOpen = panel.style.display !== 'none';
-  if (isOpen) {
-    panel.style.display = 'none';
-  } else {
-    buildFilterPanel();
-    panel.style.display = 'block';
+  const existing = document.getElementById('filter-overlay');
+  if (existing) { closeFilterPanel(); return; }
+  openFilterPanel();
+}
+
+function openFilterPanel() {
+  // Position relative to the filter button
+  const btn = document.getElementById('filter-toggle-btn');
+  const rect = btn.getBoundingClientRect();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'filter-overlay';
+  overlay.className = 'filter-overlay';
+  overlay.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  overlay.style.right = (window.innerWidth - rect.right) + 'px';
+
+  const fields = getFilterableFields();
+  overlay.innerHTML = `
+    <div class="filter-panel-header">
+      <span class="filter-panel-title">Filters</span>
+      <button class="filter-clear-all" onclick="clearAllFilters()">Clear all</button>
+    </div>
+    <div class="filter-panel-body">
+      ${fields.length
+        ? fields.map(f => buildFilterGroup(f)).join('')
+        : '<div class="filter-panel-empty">No filterable fields — add a Dropdown field in Settings.</div>'
+      }
+    </div>`;
+
+  document.body.appendChild(overlay);
+  // Close on outside click
+  setTimeout(() => document.addEventListener('click', onFilterOutsideClick), 0);
+}
+
+function closeFilterPanel() {
+  document.getElementById('filter-overlay')?.remove();
+  document.removeEventListener('click', onFilterOutsideClick);
+}
+
+function onFilterOutsideClick(e) {
+  const overlay = document.getElementById('filter-overlay');
+  const btn = document.getElementById('filter-toggle-btn');
+  if (overlay && !overlay.contains(e.target) && !btn.contains(e.target)) {
+    closeFilterPanel();
   }
 }
 
 function buildFilterPanel() {
-  const panel = document.getElementById('filter-panel');
+  // Rebuilds content inside existing overlay (called after toggle)
+  const overlay = document.getElementById('filter-overlay');
+  if (!overlay) return;
   const fields = getFilterableFields();
-  if (!fields.length) {
-    panel.innerHTML = '<div class="filter-panel-empty">No filterable fields — add a Dropdown field in Settings.</div>';
-    return;
-  }
-  panel.innerHTML = `
-    <div class="filter-panel">
-      <div class="filter-panel-header">
-        <span class="filter-panel-title">Filters</span>
-        <button class="filter-clear-all" onclick="clearAllFilters()">Clear all</button>
-      </div>
-      <div class="filter-panel-body">
-        ${fields.map(f => buildFilterGroup(f)).join('')}
-      </div>
-    </div>`;
+  const body = overlay.querySelector('.filter-panel-body');
+  if (body) body.innerHTML = fields.length
+    ? fields.map(f => buildFilterGroup(f)).join('')
+    : '<div class="filter-panel-empty">No filterable fields — add a Dropdown field in Settings.</div>';
 }
 
 function buildFilterGroup(f) {
@@ -67,7 +96,7 @@ function toggleFilterValue(key, value, el) {
   if (set.has(value)) set.delete(value);
   else set.add(value);
   if (!set.size) delete activeFilters[key];
-  // Update just this option visually
+  // Update just this option visually in place
   const isActive = (activeFilters[key] || new Set()).has(value);
   el.classList.toggle('active', isActive);
   el.querySelector('.filter-option-check').textContent = isActive ? '✓' : '';
