@@ -12,9 +12,11 @@ function fmtTime(iso) {
 
 // ── ACTIVITY LOG ──
 function addLog(type, msg) {
-  activityLog.unshift({ type, msg, ts: new Date().toISOString() });
+  const user = currentUser || 'Unknown';
+  const stamped = `[${user}] ${msg}`;
+  activityLog.unshift({ type, msg: stamped, ts: new Date().toISOString() });
   if (activityLog.length > 300) activityLog = activityLog.slice(0, 300);
-  sb.from('activity_log').insert({ type, msg }); // [DATA LAYER]
+  sb.from('activity_log').insert({ type, msg: stamped }); // [DATA LAYER]
 }
 
 function renderLogList(id, limit) {

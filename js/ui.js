@@ -2,6 +2,70 @@
 // Toast notifications, status bar, modal open/close, screen navigation, theme toggle.
 // Also contains shared field helpers used across modules.
 
+// ── AUTH ──
+function checkAuth() {
+  if (DEV_MODE) {
+    currentUser = DEV_USER;
+    showApp();
+    return;
+  }
+  if (currentUser) {
+    showApp();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main').style.display = 'none';
+    setTimeout(() => document.getElementById('login-name')?.focus(), 100);
+  }
+}
+
+function submitLogin() {
+  const name = (document.getElementById('login-name')?.value || '').trim();
+  const pass = (document.getElementById('login-pass')?.value || '').trim();
+  const errEl = document.getElementById('login-error');
+
+  if (!name) {
+    document.getElementById('login-name').focus();
+    document.getElementById('login-name').style.borderColor = 'var(--red)';
+    return;
+  }
+  if (pass !== UNIT_PASSWORD) {
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+    document.getElementById('login-pass').style.borderColor = 'var(--red)';
+    return;
+  }
+
+  currentUser = name;
+  sessionStorage.setItem('hydra-user', name);
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main').style.display = '';
+
+  // Show user in sidebar
+  const sbUser = document.getElementById('sb-user');
+  const sbName = document.getElementById('sb-user-name');
+  if (sbUser) sbUser.style.display = 'flex';
+  if (sbName) sbName.textContent = currentUser;
+}
+
+function logout() {
+  currentUser = null;
+  sessionStorage.removeItem('hydra-user');
+  document.getElementById('login-name').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-name').style.borderColor = '';
+  document.getElementById('login-pass').style.borderColor = '';
+  document.getElementById('sb-user').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main').style.display = 'none';
+  setTimeout(() => document.getElementById('login-name')?.focus(), 100);
+}
+
 // ── TOAST / STATUS ──
 function toast(msg, type = 'ok', ms = 2500) {
   const el = document.getElementById('sync-toast');

@@ -67,4 +67,4 @@ async function init() {
   }
 }
 
-init();
+init().then(() => checkAuth());

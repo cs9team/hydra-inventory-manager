@@ -21,6 +21,10 @@
     <button class="nav-item" onclick="showScreen('settings',this)"><span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Settings</button>
   </div>
   <div id="sb-footer">
+    <div id="sb-user" style="display:none">
+      <div class="sb-user-name" id="sb-user-name"></div>
+      <button class="sb-logout" onclick="logout()" title="Sign out">Sign out</button>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div>HYDRA IMS v5.2</div>
       <button onclick="toggleTheme()" id="theme-toggle" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;transition:all .15s" title="Toggle light/dark mode">🌙</button>
@@ -28,6 +32,26 @@
     <div id="data-status">Connecting…</div>
   </div>
 </nav>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div id="login-box">
+    <div class="login-logo">HYDRA<span>.</span>IMS</div>
+    <div class="login-sub">JTAC / S6 Radio Inventory</div>
+    <div class="login-field">
+      <label>Your Name</label>
+      <input id="login-name" type="text" placeholder="e.g. SGT Ramirez" autocomplete="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div class="login-field">
+      <label>Unit Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')submitLogin()">
+    </div>
+    <div id="login-error" class="login-error" style="display:none">Incorrect password</div>
+    <button class="login-btn" onclick="submitLogin()">Sign In</button>
+  </div>
+</div>
 
 <div id="main">
   <button id="actlog-btn" onclick="showScreen('actlog',null)" title="Activity Log">
