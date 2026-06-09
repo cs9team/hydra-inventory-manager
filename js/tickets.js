@@ -205,10 +205,10 @@ function buildTicketCard(t) {
 
 // ── TICKET FORM (create/edit) ──
 function buildTicketForm(t) {
-  const radioOpts = radios.map(r => {
-    const name = r.custom_fields?.radio_name || '';
-    return `<option value="${r.id}" ${t?.radio_id === r.id ? 'selected' : ''}>${r.id}${name ? ' — ' + name : ''}</option>`;
-  }).join('');
+  const linkedRadio = t?.radio_id ? radios.find(r => r.id === t.radio_id) : null;
+  const linkedLabel = linkedRadio
+    ? linkedRadio.id + (linkedRadio.custom_fields?.radio_name ? ' — ' + linkedRadio.custom_fields.radio_name : '')
+    : '';
 
   return `
     <div class="field"><label>Title <span style="color:var(--red)">*</span></label>
@@ -225,16 +225,121 @@ function buildTicketForm(t) {
           ${TICKET_PRIORITIES.map(p => `<option ${(t?.priority || 'Medium') === p ? 'selected' : ''}>${p}</option>`).join('')}
         </select></div>
     </div>
-    <div class="field"><label>Linked Radio (optional)</label>
-      <select id="tf-radio">
-        <option value="">— None —</option>${radioOpts}
-      </select></div>
+    <div class="field">
+      <label>Linked Radio (optional)</label>
+      <div class="radio-search-wrap" id="radio-search-wrap">
+        <input id="tf-radio-search" type="text" 
+          placeholder="Scan barcode or type serial / last 4 digits…"
+          value="${linkedLabel}"
+          autocomplete="off" spellcheck="false"
+          oninput="radioSearchInput()"
+          onkeydown="radioSearchKeydown(event)">
+        <input type="hidden" id="tf-radio" value="${t?.radio_id || ''}">
+        ${linkedLabel ? `<button class="radio-search-clear" onclick="clearRadioSearch()" title="Clear">✕</button>` : ''}
+      </div>
+      <div class="radio-search-results" id="radio-search-results" style="display:none"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="field"><label>Technician</label>
         <input id="tf-tech" type="text" value="${t?.technician || ''}" placeholder="Name or callsign"></div>
       <div class="field"><label>Est. Completion</label>
         <input id="tf-date" type="date" value="${t?.est_completion || ''}"></div>
     </div>`;
+}
+
+// ── RADIO SEARCH LOGIC ──
+let _radioSearchSelected = false;
+
+function radioSearchInput() {
+  _radioSearchSelected = false;
+  document.getElementById('tf-radio').value = '';
+  const q = (document.getElementById('tf-radio-search')?.value || '').trim().toLowerCase();
+  const resultsEl = document.getElementById('radio-search-results');
+  const clearBtn = document.querySelector('.radio-search-clear');
+  if (clearBtn) clearBtn.style.display = q ? '' : 'none';
+  if (!q) { resultsEl.style.display = 'none'; return; }
+
+  const matches = radios.filter(r => {
+    const id = r.id.toLowerCase();
+    const name = (r.custom_fields?.radio_name || '').toLowerCase();
+    return id.includes(q) || id.endsWith(q) || name.includes(q);
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    resultsEl.innerHTML = '<div class="rsr-empty">No radios found</div>';
+    resultsEl.style.display = 'block';
+    return;
+  }
+  resultsEl.innerHTML = matches.map((r, i) => {
+    const name = r.custom_fields?.radio_name || '';
+    const dept = r.custom_fields?.department || '';
+    return `<div class="rsr-item" data-id="${r.id}" data-idx="${i}"
+      onclick="selectRadioResult('${r.id}')"
+      onmouseenter="highlightRadioResult(${i})">
+      <span class="rsr-id">${r.id}</span>
+      <span class="rsr-meta">${[name, dept].filter(Boolean).join(' · ') || '—'}</span>
+    </div>`;
+  }).join('');
+  resultsEl.style.display = 'block';
+}
+
+function radioSearchKeydown(e) {
+  const results = document.getElementById('radio-search-results');
+  if (results.style.display === 'none') return;
+  const items = results.querySelectorAll('.rsr-item');
+  const cur = results.querySelector('.rsr-item.highlighted');
+  let idx = cur ? parseInt(cur.dataset.idx) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    highlightRadioResult(Math.min(idx + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    highlightRadioResult(Math.max(idx - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const highlighted = results.querySelector('.rsr-item.highlighted');
+    if (highlighted) selectRadioResult(highlighted.dataset.id);
+    // If only one result, select it directly
+    else if (items.length === 1) selectRadioResult(items[0].dataset.id);
+  } else if (e.key === 'Escape') {
+    results.style.display = 'none';
+  }
+}
+
+function highlightRadioResult(idx) {
+  const results = document.getElementById('radio-search-results');
+  results.querySelectorAll('.rsr-item').forEach(el => el.classList.remove('highlighted'));
+  const target = results.querySelector(`.rsr-item[data-idx="${idx}"]`);
+  if (target) target.classList.add('highlighted');
+}
+
+function selectRadioResult(id) {
+  const r = radios.find(x => x.id === id); if (!r) return;
+  const name = r.custom_fields?.radio_name || '';
+  document.getElementById('tf-radio').value = id;
+  document.getElementById('tf-radio-search').value = id + (name ? ' — ' + name : '');
+  document.getElementById('radio-search-results').style.display = 'none';
+  const wrap = document.getElementById('radio-search-wrap');
+  let clearBtn = wrap.querySelector('.radio-search-clear');
+  if (!clearBtn) {
+    clearBtn = document.createElement('button');
+    clearBtn.className = 'radio-search-clear';
+    clearBtn.title = 'Clear';
+    clearBtn.textContent = '✕';
+    clearBtn.onclick = clearRadioSearch;
+    wrap.appendChild(clearBtn);
+  }
+  clearBtn.style.display = '';
+  _radioSearchSelected = true;
+}
+
+function clearRadioSearch() {
+  document.getElementById('tf-radio').value = '';
+  document.getElementById('tf-radio-search').value = '';
+  document.getElementById('radio-search-results').style.display = 'none';
+  const clearBtn = document.querySelector('.radio-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  document.getElementById('tf-radio-search')?.focus();
 }
 
 // ── SAVE ──

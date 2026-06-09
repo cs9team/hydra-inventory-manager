@@ -386,3 +386,16 @@ body.light .tkt-card{background:#fff;border-color:#dde1e8}
 body.light .tkt-list-wrap{border-color:#dde1e8}
 body.light .tkt-list-wrap th{background:#f0f2f5;border-color:#dde1e8}
 body.light .tkt-list-wrap td{border-color:#eef0f4}
+
+/* ── RADIO SEARCH FIELD (ticket form) ── */
+.radio-search-wrap{position:relative;display:flex;align-items:center}
+.radio-search-wrap input[type="text"]{flex:1;padding-right:30px}
+.radio-search-clear{position:absolute;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0;line-height:1;transition:color .15s}
+.radio-search-clear:hover{color:var(--red)}
+.radio-search-results{background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);margin-top:4px;overflow:hidden;max-height:220px;overflow-y:auto}
+.rsr-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;transition:background .1s;gap:12px}
+.rsr-item:hover,.rsr-item.highlighted{background:var(--surface2)}
+.rsr-id{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);flex-shrink:0}
+.rsr-meta{font-size:11px;color:var(--text3);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rsr-empty{padding:10px 12px;font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+body.light .radio-search-results{box-shadow:0 6px 20px rgba(0,0,0,.1)}
