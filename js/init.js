@@ -10,7 +10,7 @@ async function init() {
     const [radiosRes, settingsRes, logRes, auditsRes, auditItemsRes, fieldsRes, ticketsRes] = await Promise.all([
       sb.from('radios').select('*').order('id'),
       sb.from('app_settings').select('*').eq('id', 1).single(),
-      sb.from('activity_log').select('*').order('ts', { ascending: false }).limit(300),
+      sb.from('activity_log').select('*').gte('ts', new Date(Date.now() - 30*24*60*60*1000).toISOString()).order('ts', { ascending: false }),
       sb.from('audits').select('*').order('started_at', { ascending: false }),
       sb.from('audit_items').select('*').order('ts', { ascending: false }),
       sb.from('field_definitions').select('*').order('ord'),
@@ -52,6 +52,9 @@ async function init() {
     };
 
     tickets = (ticketsRes.data || []);
+
+    // Purge log entries older than 30 days
+    sb.from('activity_log').delete().lt('ts', new Date(Date.now() - 30*24*60*60*1000).toISOString()); // [DATA LAYER]
 
     setStatus('connected', `● Live — ${radios.length} radios`);
     renderTable(); renderFieldDefs(); refreshDashboard();
