@@ -322,10 +322,22 @@ function buildRadioCard(r) {
   if (!history.length && r.lastAudited) {
     history.push({ type: 'audit', label: 'Last verified', detail: '', ts: r.lastAudited });
   }
+  // Add open/in-progress tickets to history
+  if (typeof tickets !== 'undefined') {
+    tickets.filter(t => t.radio_id === r.id).forEach(t => {
+      history.push({
+        type: 'ticket',
+        label: `${t.status === 'Resolved' ? 'Ticket resolved' : 'Open ticket'}: ${t.title}`,
+        detail: t.id,
+        ts: t.updated_at
+      });
+    });
+  }
+
   history.sort((a, b) => new Date(b.ts) - new Date(a.ts));
   history.push({ type: 'add', label: 'Added to inventory', detail: '', ts: null });
 
-  const icons = { audit: '🔍', add: '➕', edit: '✏️' };
+  const icons = { audit: '🔍', add: '➕', edit: '✏️', ticket: '🎫' };
   const historyRows = history.map((h, i) => `
     <div class="rc-hist-item ${i === history.length - 1 ? 'last' : ''}">
       <div class="rc-hist-dot ${h.type}"></div>

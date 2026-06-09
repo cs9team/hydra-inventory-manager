@@ -24,3 +24,4 @@ let sortField = 'id', sortDir = 1;
 let editingId = null;
 let modalSaveFn = null;
 let pendingImport = null; // parsed CSV rows awaiting confirmation
+let tickets = [];         // [{id, title, description, status, priority, radio_id, technician, est_completion, created_at, updated_at}]

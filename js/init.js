@@ -7,13 +7,14 @@
 async function init() {
   setStatus('syncing', 'Connecting…');
   try {
-    const [radiosRes, settingsRes, logRes, auditsRes, auditItemsRes, fieldsRes] = await Promise.all([
+    const [radiosRes, settingsRes, logRes, auditsRes, auditItemsRes, fieldsRes, ticketsRes] = await Promise.all([
       sb.from('radios').select('*').order('id'),
       sb.from('app_settings').select('*').eq('id', 1).single(),
       sb.from('activity_log').select('*').order('ts', { ascending: false }).limit(300),
       sb.from('audits').select('*').order('started_at', { ascending: false }),
       sb.from('audit_items').select('*').order('ts', { ascending: false }),
-      sb.from('field_definitions').select('*').order('ord')
+      sb.from('field_definitions').select('*').order('ord'),
+      sb.from('tickets').select('*').order('created_at', { ascending: false })
     ]);
 
     if (radiosRes.error) throw radiosRes.error;
@@ -49,6 +50,8 @@ async function init() {
       id: open.id, name: open.name, startedAt: open.started_at, closedAt: null,
       items: allItems.filter(i => i.audit_id === open.id).map(i => ({ id: i.radio_id, custom_fields: i.custom_fields || {}, ts: i.ts }))
     };
+
+    tickets = (ticketsRes.data || []);
 
     setStatus('connected', `● Live — ${radios.length} radios`);
     renderTable(); renderFieldDefs(); refreshDashboard();

@@ -47,6 +47,7 @@ function showScreen(name, btn) {
   if (name === 'inventory') renderTable();
   if (name === 'settings') renderFieldDefs();
   if (name === 'audits') renderAuditCards();
+  if (name === 'tickets') renderTickets();
 }
 
 // ── THEME ──

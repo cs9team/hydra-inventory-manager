@@ -17,6 +17,7 @@
     <button class="nav-item active" onclick="showScreen('dashboard',this)"><span class="ni-icon">⬛</span> Dashboard</button>
     <button class="nav-item" onclick="showScreen('inventory',this)"><span class="ni-icon">📋</span> Inventory</button>
     <button class="nav-item" onclick="showScreen('audits',this)"><span class="ni-icon">🔍</span> Audits</button>
+    <button class="nav-item" onclick="showScreen('tickets',this)"><span class="ni-icon">🎫</span> Tickets</button>
     <button class="nav-item" onclick="showScreen('settings',this)"><span class="ni-icon">⚙️</span> Settings</button>
   </div>
   <div id="sb-footer">
@@ -155,6 +156,22 @@
     </div>
   </div>
 
+  <!-- TICKETS -->
+  <div class="screen" id="screen-tickets">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Tickets</h1><p>Trouble tickets — repairs, parts, and maintenance</p></div>
+      <div class="flex-gap">
+        <div class="tkt-view-toggle">
+          <button id="tkt-view-kanban" class="btn btn-ghost btn-sm active" onclick="setTicketView('kanban')">⬛ Kanban</button>
+          <button id="tkt-view-list"   class="btn btn-ghost btn-sm"        onclick="setTicketView('list')">☰ List</button>
+        </div>
+        <button class="btn btn-accent btn-sm" onclick="openNewTicketModal()">+ New Ticket</button>
+      </div>
+    </div>
+    <div id="ticket-stats" class="tkt-stats-bar"></div>
+    <div id="tickets-wrap"></div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="screen" id="screen-settings">
     <div class="page-header"><h1>Settings</h1><p>Manage fields, app settings, and data</p></div>
@@ -232,6 +249,7 @@
 <script src="js/fields.js"></script>
 <script src="js/import.js"></script>
 <script src="js/audits.js"></script>
+<script src="js/tickets.js"></script>
 <script src="js/init.js"></script>
 
 </body>
