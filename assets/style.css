@@ -386,3 +386,53 @@ body.light .tkt-card{background:#fff;border-color:#dde1e8}
 body.light .tkt-list-wrap{border-color:#dde1e8}
 body.light .tkt-list-wrap th{background:#f0f2f5;border-color:#dde1e8}
 body.light .tkt-list-wrap td{border-color:#eef0f4}
+
+/* ── ACTIVITY LOG BUTTON + SCREEN ── */
+#actlog-btn{
+  position:fixed;top:18px;right:22px;z-index:100;
+  width:34px;height:34px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border2);
+  cursor:pointer;color:var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+#actlog-btn svg{transition:stroke .2s}
+#actlog-btn:hover{border-color:var(--accent);background:var(--surface);color:var(--accent)}
+#actlog-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.actlog-toolbar-row{display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.actlog-count-badge{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);white-space:nowrap;margin-left:auto}
+
+/* Day group card */
+.actlog-day-group{margin-bottom:20px}
+.actlog-day-label{
+  font-size:10px;font-family:'JetBrains Mono',monospace;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;
+  padding-bottom:8px;margin-bottom:2px;
+  border-bottom:1px solid var(--border2);
+}
+.actlog-day-entries{display:flex;flex-direction:column}
+
+/* Each log row */
+.actlog-row{
+  display:grid;grid-template-columns:20px 1fr auto auto;
+  align-items:center;gap:12px;
+  padding:11px 4px;
+  border-bottom:1px solid var(--border);
+  transition:background .1s;
+  border-radius:4px;
+}
+.actlog-row:last-child{border-bottom:none}
+.actlog-row:hover{background:var(--surface2);padding-left:8px;padding-right:8px}
+.actlog-row-icon{font-size:12px;text-align:center;opacity:.7}
+.actlog-row-msg{font-size:12px;color:var(--text2);line-height:1.45}
+.actlog-row-time{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text3);white-space:nowrap}
+
+.actlog-empty{
+  padding:60px;text-align:center;color:var(--text3);
+  font-size:12px;font-family:'JetBrains Mono',monospace;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px
+}
+
+body.light .actlog-day-label{border-color:#dde1e8}
+body.light .actlog-row{border-color:#eef0f4}
